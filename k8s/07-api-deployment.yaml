@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: rag-api
+  namespace: rag-ai
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: rag-api
+
+  template:
+    metadata:
+      labels:
+        app: rag-api
+
+    spec:
+
+      containers:
+
+      - name: rag-api
+
+        image: bhagwank/rag-ai:v1
+
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 8000
+
+        envFrom:
+        - configMapRef:
+            name: rag-config
+
+        volumeMounts:
+
+        - name: chroma-storage
+          mountPath: /app/chroma_db
+
+        - name: upload-storage
+          mountPath: /app/uploads
+
+        - name: document-storage
+          mountPath: /app/documents
+
+        - name: log-storage
+          mountPath: /app/logs
+
+        readinessProbe:
+          httpGet:
+            path: /docs
+            port: 8000
+
+          initialDelaySeconds: 20
+          periodSeconds: 10
+
+        livenessProbe:
+          httpGet:
+            path: /docs
+            port: 8000
+
+          initialDelaySeconds: 40
+          periodSeconds: 20
+
+      volumes:
+
+      - name: chroma-storage
+        persistentVolumeClaim:
+          claimName: chroma-pvc
+
+      - name: upload-storage
+        persistentVolumeClaim:
+          claimName: uploads-pvc
+
+      - name: document-storage
+        persistentVolumeClaim:
+          claimName: documents-pvc
+
+      - name: log-storage
+        emptyDir: {}
